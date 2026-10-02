@@ -83,9 +83,12 @@ Netlify works the same way if you'd rather use that instead.
   amount, note, or who it's between, or delete it outright. This is enforced by the
   database itself (a Postgres trigger), not just hidden in the interface — so it holds
   even if someone tries to call the database directly.
-- **Confirming an entry**: anyone else in the group can mark someone's entry as
-  confirmed. This is intentionally more open, since the whole point is letting the
-  other side of a debt acknowledge it.
+- **Confirming an entry**: only the person who owes the money (not the creditor, and
+  not a bystander) can mark an entry as confirmed. This is enforced by the same
+  database trigger that guards edits, so it holds even outside the app's UI. One
+  side effect: a debt owed by a **guest** (someone without an account) can never be
+  confirmed, since there's no logged-in person to do it — the entry will just stay
+  "awaiting confirmation" indefinitely, which is fine, it still counts toward balances.
 - **Passwords**: handled entirely by Supabase Auth — this app never sees or stores
   raw passwords itself.
 

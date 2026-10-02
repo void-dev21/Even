@@ -82,6 +82,8 @@ create policy "entries delete" on entries
 -- permissive (it has to be, so other members can confirm the entry).
 create or replace function enforce_entry_edit_rules()
 returns trigger as $$
+declare
+  debtor_uid uuid;
 begin
   if (new.amount is distinct from old.amount)
      or (new.note is distinct from old.note)
@@ -91,6 +93,17 @@ begin
       raise exception 'Only the person who added this entry can change its amount, note, or parties.';
     end if;
   end if;
+
+  -- Only the person who owes the debt (from_name) can confirm or unconfirm it.
+  if (new.confirmed is distinct from old.confirmed)
+     or (new.confirmed_by is distinct from old.confirmed_by)
+     or (new.confirmed_by_name is distinct from old.confirmed_by_name) then
+    select user_id into debtor_uid from members where name = old.from_name;
+    if debtor_uid is null or debtor_uid is distinct from auth.uid() then
+      raise exception 'Only the person who owes this debt can confirm it.';
+    end if;
+  end if;
+
   return new;
 end;
 $$ language plpgsql security definer;
